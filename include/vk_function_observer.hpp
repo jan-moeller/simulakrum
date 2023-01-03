@@ -22,9 +22,21 @@
 // SOFTWARE.
 //
 
-#ifndef SIMULAKRUM_SIMULAKRUM_HPP
-#define SIMULAKRUM_SIMULAKRUM_HPP
+#ifndef SIMULAKRUM_VK_FUNCTION_OBSERVER_HPP
+#define SIMULAKRUM_VK_FUNCTION_OBSERVER_HPP
 
-#include "mock_manager.hpp"
+#include <functional>
 
-#endif // SIMULAKRUM_SIMULAKRUM_HPP
+namespace simulakrum
+{
+namespace detail
+{
+template<typename R, typename... Args>
+auto strip_return_type(R (*)(Args...)) -> std::function<void(Args...)>;
+}
+
+template<auto vk_fn>
+using vk_function_observer = decltype(detail::strip_return_type(vk_fn));
+} // namespace simulakrum
+
+#endif // SIMULAKRUM_VK_FUNCTION_OBSERVER_HPP

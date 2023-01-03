@@ -22,9 +22,15 @@
 // SOFTWARE.
 //
 
-#ifndef SIMULAKRUM_SIMULAKRUM_HPP
-#define SIMULAKRUM_SIMULAKRUM_HPP
+#ifndef SIMULAKRUM_C_ARRAY_HPP
+#define SIMULAKRUM_C_ARRAY_HPP
 
-#include "mock_manager.hpp"
+#include <cstddef>
 
-#endif // SIMULAKRUM_SIMULAKRUM_HPP
+namespace simulakrum
+{
+template<typename T, std::size_t N>
+using c_array = T[N];
+}
+
+#endif // SIMULAKRUM_C_ARRAY_HPP

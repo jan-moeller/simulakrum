@@ -29,29 +29,38 @@ set(VULKAN_VERSION v1.3.238)
 
 include(FetchContent)
 fetchcontent_declare(
-        VulkanDocs
-        GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Docs.git
-        GIT_TAG ${VULKAN_VERSION}
-)
-fetchcontent_makeavailable(VulkanDocs)
-
-include(FetchContent)
-fetchcontent_declare(
         VulkanHeaders
         GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git
         GIT_TAG ${VULKAN_VERSION}
 )
 fetchcontent_makeavailable(VulkanHeaders)
 
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gen/)
-execute_process(COMMAND python3 scripts/gen_from_xml.py -i ${vulkandocs_SOURCE_DIR}/xml/vk.xml -o ${CMAKE_CURRENT_BINARY_DIR}/gen
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gen/include)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gen/src)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gen/cmake)
+execute_process(COMMAND python3 scripts/gen_from_xml.py
+        --registry ${vulkanheaders_SOURCE_DIR}/registry/vk.xml
+        --header-dir ${CMAKE_CURRENT_BINARY_DIR}/gen/include
+        --source-dir ${CMAKE_CURRENT_BINARY_DIR}/gen/src
+        --cmake-dir ${CMAKE_CURRENT_BINARY_DIR}/gen/cmake
+        --stub-dir ${CMAKE_CURRENT_SOURCE_DIR}/src/default
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        )
 
-file(GLOB generated_SRC ${CMAKE_CURRENT_BINARY_DIR}/gen/*.cpp)
-file(GLOB default_impls_SRC src/default/*.cpp)
+include(${CMAKE_CURRENT_BINARY_DIR}/gen/cmake/simulakrum_generated.cmake)
 
-add_library(simulakrum include/simulakrum.hpp ${generated_SRC} ${default_impls_SRC})
-target_include_directories(simulakrum PUBLIC include/ ${vulkanheaders_SOURCE_DIR}/include)
+add_library(simulakrum
+        ${simlakrum_default_SRC}
+        ${simlakrum_generated_INCLUDE}
+        ${simlakrum_generated_SRC}
+        include/c_array.hpp
+        include/mock_manager.hpp
+        include/simulakrum.hpp
+        include/vk_function_impl.hpp
+        include/vk_function_info.hpp
+        include/vk_function_observer.hpp
+        )
+target_include_directories(simulakrum PUBLIC include/ ${vulkanheaders_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}/gen/include)
 set_target_properties(simulakrum PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(simulakrum PROPERTIES
         CXX_STANDARD 20

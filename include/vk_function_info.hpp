@@ -22,9 +22,17 @@
 // SOFTWARE.
 //
 
-#ifndef SIMULAKRUM_SIMULAKRUM_HPP
-#define SIMULAKRUM_SIMULAKRUM_HPP
+#ifndef SIMULAKRUM_VK_FUNCTION_INFO_HPP
+#define SIMULAKRUM_VK_FUNCTION_INFO_HPP
 
-#include "mock_manager.hpp"
+namespace simulakrum
+{
+template<auto vk_fn>
+struct vk_function_info
+{
+    char const*     name;
+    decltype(vk_fn) default_impl;
+};
+} // namespace simulakrum
 
-#endif // SIMULAKRUM_SIMULAKRUM_HPP
+#endif // SIMULAKRUM_VK_FUNCTION_INFO_HPP

@@ -22,9 +22,21 @@
 // SOFTWARE.
 //
 
-#ifndef SIMULAKRUM_SIMULAKRUM_HPP
-#define SIMULAKRUM_SIMULAKRUM_HPP
+#ifndef SIMULAKRUM_VK_FUNCTION_IMPL_HPP
+#define SIMULAKRUM_VK_FUNCTION_IMPL_HPP
 
-#include "mock_manager.hpp"
+#include <functional>
 
-#endif // SIMULAKRUM_SIMULAKRUM_HPP
+namespace simulakrum
+{
+namespace detail
+{
+template<typename R, typename... Args>
+auto fn_ptr_to_std_function(R (*)(Args...)) -> std::function<R(Args...)>;
+}
+
+template<auto vk_fn>
+using vk_function_impl = decltype(detail::fn_ptr_to_std_function(vk_fn));
+} // namespace simulakrum
+
+#endif // SIMULAKRUM_VK_FUNCTION_IMPL_HPP
