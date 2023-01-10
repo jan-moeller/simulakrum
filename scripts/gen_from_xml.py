@@ -122,6 +122,8 @@ def main():
                         help="Specify the directory to generate the stubs in (won't be overwritten if already there)")
     parser.add_argument('--enable-extension', action='append', dest='enabled_extensions', default=[],
                         help='Enable generation of scaffolding and stubs for an extension')
+    parser.add_argument('--force-stubs', action='store_true', default=False,
+                        help='Force overwrite stub files, even if they already exist')
     parser.add_argument('-v', "--verbose", action='store_true',
                         help='Enable verbose output')
 
@@ -134,6 +136,7 @@ def main():
         print(f"Generating cmake in: {args.cmake_dir}")
         print(f"Generating stubs in: {args.stub_dir}")
         print(f"Enabled extensions: {args.enabled_extensions}")
+        print(f"Force-overwriting stubs: {args.force_stubs}")
 
     tree = ET.parse(args.registry)
     root = tree.getroot()
@@ -276,7 +279,7 @@ def generate_stub(args, fn):
     filename = f'{name}_default.cpp'
     file_path = os.path.join(args.stub_dir, filename)
 
-    if os.path.isfile(file_path):
+    if os.path.isfile(file_path) and not args.force_stubs:
         if args.verbose:
             print(f'Skipping generation of stub for {name}_default in: {file_path}')
         return
