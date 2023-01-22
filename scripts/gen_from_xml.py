@@ -113,7 +113,7 @@ vkGetXProcAddr_default_template = '''
 
 #include <vulkan/vulkan.h>
 
-extern "C"
+namespace simulakrum
 {{
     auto {name}_default({params}) -> PFN_vkVoidFunction
     {{
