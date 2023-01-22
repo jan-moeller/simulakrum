@@ -67,3 +67,5 @@ set_target_properties(simulakrum PROPERTIES
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO
         )
+
+add_subdirectory(test)
