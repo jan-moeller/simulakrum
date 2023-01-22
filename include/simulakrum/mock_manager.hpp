@@ -94,6 +94,6 @@ struct mock_manager
 
 } // namespace simulakrum
 
-#include "combined_info.hpp"
+#include "simulakrum/combined_info.hpp"
 
 #endif // SIMULAKRUM_MOCK_MANAGER_HPP

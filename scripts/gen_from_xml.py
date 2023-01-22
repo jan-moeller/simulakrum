@@ -64,7 +64,7 @@ special_get_proc_addr_list = [  # Default implementations are fully autogenerate
 ]
 
 info_header_template = '''
-#include "mock_manager.hpp"
+#include "simulakrum/mock_manager.hpp"
 #include <vulkan/vulkan.h>
 {additional_includes}
 
@@ -81,7 +81,7 @@ namespace simulakrum
 '''
 
 function_impl_template = '''
-#include "mock_manager.hpp"
+#include "simulakrum/mock_manager.hpp"
 #include <vulkan/vulkan.h>
 {additional_includes}
 
@@ -236,7 +236,7 @@ def generate_info_header(args, fn):
     params = fn.args
 
     filename = f'{name}_info.hpp'
-    file_path = os.path.join(args.header_dir, filename)
+    file_path = os.path.join(args.header_dir, os.path.join('simulakrum', filename))
 
     if args.verbose:
         print(f'Generating info header for {name} in: {file_path}')
@@ -247,7 +247,7 @@ def generate_info_header(args, fn):
     additional_includes = ''
     uses_array_type = any([param.isarraytype for param in params])
     if uses_array_type:
-        additional_includes = '#include "c_array.hpp"\n'
+        additional_includes = '#include "simulakrum/c_array.hpp"\n'
 
     with open(file_path, 'w') as out:
         out.write(cpp_license_header)
@@ -278,7 +278,7 @@ def generate_function_impl(args, fn):
     additional_includes = ''
     uses_array_type = any([param.isarraytype for param in params])
     if uses_array_type:
-        additional_includes = '#include "c_array.hpp"\n'
+        additional_includes = '#include "simulakrum/c_array.hpp"\n'
 
     with open(file_path, 'w') as out:
         out.write(cpp_license_header)
@@ -319,7 +319,7 @@ def generate_stub(args, fn, functions):
     additional_includes = ''
     uses_array_type = any([param.isarraytype for param in params])
     if uses_array_type:
-        additional_includes = '#include "c_array.hpp"\n'
+        additional_includes = '#include "simulakrum/c_array.hpp"\n'
 
     with open(file_path, 'w') as out:
         out.write(cpp_license_header)
@@ -348,7 +348,7 @@ def generate_vkGetXProcAddr(args, file_path, functions, name, params_string):
 
 def generate_combined_info_header(args, functions):
     filename = 'combined_info.hpp'
-    file_path = os.path.join(args.header_dir, filename)
+    file_path = os.path.join(args.header_dir, os.path.join('simulakrum', filename))
 
     if args.verbose:
         print(f'Generating combined info header in: {file_path}')
@@ -360,7 +360,7 @@ def generate_combined_info_header(args, functions):
         out.write('\n\n')
 
         for fn in functions:
-            out.write(f'#include "{fn.name}_info.hpp"\n')
+            out.write(f'#include "simulakrum/{fn.name}_info.hpp"\n')
 
 
 def generate_cmake(args, functions):
@@ -378,7 +378,7 @@ def generate_cmake(args, functions):
 
         out.write('set(simlakrum_generated_INCLUDE\n')
         for fn in functions:
-            out.write(f'    {args.header_dir}/{fn.name}_info.hpp\n')
+            out.write(f'    {args.header_dir}/simulakrum/{fn.name}_info.hpp\n')
         out.write(')\n')
 
         out.write('set(simlakrum_generated_SRC\n')

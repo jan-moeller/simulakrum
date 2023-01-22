@@ -35,7 +35,7 @@ fetchcontent_declare(
 )
 fetchcontent_makeavailable(VulkanHeaders)
 
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gen/include)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gen/include/simulakrum)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gen/src)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gen/cmake)
 execute_process(COMMAND python3 scripts/gen_from_xml.py
@@ -53,12 +53,12 @@ add_library(simulakrum
         ${simlakrum_default_SRC}
         ${simlakrum_generated_INCLUDE}
         ${simlakrum_generated_SRC}
-        include/c_array.hpp
-        include/mock_manager.hpp
-        include/simulakrum.hpp
-        include/vk_function_impl.hpp
-        include/vk_function_info.hpp
-        include/vk_function_observer.hpp
+        include/simulakrum/c_array.hpp
+        include/simulakrum/mock_manager.hpp
+        include/simulakrum/simulakrum.hpp
+        include/simulakrum/vk_function_impl.hpp
+        include/simulakrum/vk_function_info.hpp
+        include/simulakrum/vk_function_observer.hpp
         )
 target_include_directories(simulakrum PUBLIC include/ ${vulkanheaders_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}/gen/include)
 set_target_properties(simulakrum PROPERTIES LINKER_LANGUAGE CXX)
