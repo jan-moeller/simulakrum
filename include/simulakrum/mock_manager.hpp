@@ -30,8 +30,9 @@
 #include "vk_function_observer.hpp"
 
 #include <functional>
+#include <list>
 #include <string_view>
-#include <vector>
+#include <utility>
 
 namespace simulakrum
 {
@@ -70,15 +71,15 @@ struct mock_manager
     {
         auto& fn_observers = observers<vk_fn>;
         fn_observers.emplace_back(std::move(observer));
-        // TODO: Return handle
+        return observer_handle<vk_fn>{std::prev(fn_observers.end())};
     }
 
     template<auto vk_fn>
     static auto override(vk_function_impl<vk_fn> override)
     {
         auto& fn_overrides = overrides<vk_fn>;
-        fn_overrides.push_back(override);
-        // TODO: Return handle
+        fn_overrides.emplace_back(std::move(override));
+        return override_handle<vk_fn>{std::prev(fn_overrides.end())};
     }
 
   private:
@@ -86,10 +87,90 @@ struct mock_manager
     static constexpr vk_function_info<vk_fn> info = {.name = "unknown function", .default_impl = nullptr};
 
     template<auto vk_fn>
-    static inline std::vector<vk_function_impl<vk_fn>> overrides = {};
+    static inline std::list<vk_function_impl<vk_fn>> overrides = {};
 
     template<auto vk_fn>
-    static inline std::vector<vk_function_observer<vk_fn>> observers = {};
+    static inline std::list<vk_function_observer<vk_fn>> observers = {};
+
+    friend class observer_handle;
+
+    template<typename Derived, typename iterator>
+    class basic_handle
+    {
+      public:
+        ~basic_handle() noexcept { static_cast<Derived*>(this)->reset(); }
+        basic_handle()                    = default;
+        basic_handle(basic_handle const&) = delete;
+        basic_handle(basic_handle&& other) noexcept
+            : m_iter(std::exchange(other.m_iter, iterator{}))
+        {
+        }
+
+        auto operator=(basic_handle const&) = delete;
+        auto operator=(basic_handle&& other) noexcept -> basic_handle&
+        {
+            if (this != &other)
+            {
+                static_cast<Derived*>(this)->reset();
+                m_iter = std::exchange(other.m_iter, iterator{});
+            }
+            return *this;
+        }
+
+        auto get() const noexcept { return *std::as_const(m_iter); }
+        auto get() noexcept { return *m_iter; }
+
+      protected:
+        iterator m_iter = {};
+
+        explicit basic_handle(iterator iter) noexcept
+            : m_iter(iter)
+        {
+        }
+
+        friend class mock_manager;
+    };
+
+    template<auto vk_fn>
+    struct override_handle : basic_handle<override_handle<vk_fn>, typename std::list<vk_function_impl<vk_fn>>::iterator>
+    {
+      private:
+        using iterator = typename std::list<vk_function_impl<vk_fn>>::iterator;
+        using base     = basic_handle<override_handle<vk_fn>, iterator>;
+
+      public:
+        void reset() noexcept
+        {
+            if (base::m_iter != iterator{})
+                mock_manager::overrides<vk_fn>.erase(base::m_iter);
+        }
+
+        explicit override_handle(iterator iter)
+            : base(iter)
+        {
+        }
+    };
+
+    template<auto vk_fn>
+    struct observer_handle
+        : basic_handle<observer_handle<vk_fn>, typename std::list<vk_function_observer<vk_fn>>::iterator>
+    {
+      private:
+        using iterator = typename std::list<vk_function_observer<vk_fn>>::iterator;
+        using base     = basic_handle<observer_handle<vk_fn>, iterator>;
+
+      public:
+        void reset() noexcept
+        {
+            if (base::m_iter != iterator{})
+                mock_manager::observers<vk_fn>.erase(base::m_iter);
+        }
+
+        explicit observer_handle(iterator iter)
+            : base(iter)
+        {
+        }
+    };
 };
 
 } // namespace simulakrum
