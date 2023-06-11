@@ -23,32 +23,74 @@
 #
 
 cmake_minimum_required(VERSION 3.24)
-project(simulakrum)
-
-set(VULKAN_VERSION v1.3.238)
-
-include(FetchContent)
-fetchcontent_declare(
-        VulkanHeaders
-        GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git
-        GIT_TAG ${VULKAN_VERSION}
+project(simulakrum
+        VERSION 0.1.0
+        LANGUAGES CXX
 )
-fetchcontent_makeavailable(VulkanHeaders)
 
+#############################################################################################################
+# Prevent in-source builds
+#############################################################################################################
+if (PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
+    message(
+            FATAL_ERROR
+            "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there."
+    )
+endif ()
+
+#############################################################################################################
+# Dependencies
+#############################################################################################################
+include(cmake/CPM.cmake)
+
+CPMAddPackage("gh:TheLartians/PackageProject.cmake@1.11.0")
+CPMAddPackage("gh:KhronosGroup/Vulkan-Headers#v1.3.238")
+if (${CPM_LAST_PACKAGE_NAME}_ADDED)
+    message(STATUS ${CPM_LAST_PACKAGE_NAME})
+    # Vulkan-Headers doesn't export its targets appropriately... so we do it for them
+    packageProject(
+            NAME Vulkan-Headers
+            VERSION v1.3.238
+            NAMESPACE Vulkan
+            BINARY_DIR ${${CPM_LAST_PACKAGE_NAME}_BINARY_DIR}
+            INCLUDE_DIR ${${CPM_LAST_PACKAGE_NAME}_SOURCE_DIR}/include
+            INCLUDE_DESTINATION include/Vulkan-Headers-1.3.250
+            COMPATIBILITY SameMajorVersion
+            DEPENDENCIES ""
+    )
+endif ()
+
+#############################################################################################################
+# Build configuration
+#############################################################################################################
+option(SIMULAKRUM_BUILD_TESTS "Build the simulakrum tests" OFF)
+
+message(STATUS "------------------------------------------------------------------------------")
+message(STATUS "    ${PROJECT_NAME} (${PROJECT_VERSION})")
+message(STATUS "------------------------------------------------------------------------------")
+message(STATUS "Build type:                ${CMAKE_BUILD_TYPE}")
+message(STATUS "SIMULAKRUM_BUILD_TESTS:    ${SIMULAKRUM_BUILD_TESTS}")
+
+#############################################################################################################
+# Code generation
+#############################################################################################################
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gen/include/simulakrum)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gen/src)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gen/cmake)
 execute_process(COMMAND python3 scripts/gen_from_xml.py
-        --registry ${vulkanheaders_SOURCE_DIR}/registry/vk.xml
+        --registry ${Vulkan-Headers_SOURCE_DIR}/registry/vk.xml
         --header-dir ${CMAKE_CURRENT_BINARY_DIR}/gen/include
         --source-dir ${CMAKE_CURRENT_BINARY_DIR}/gen/src
         --cmake-dir ${CMAKE_CURRENT_BINARY_DIR}/gen/cmake
         --stub-dir ${CMAKE_CURRENT_SOURCE_DIR}/src/default
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        )
+)
 
 include(${CMAKE_CURRENT_BINARY_DIR}/gen/cmake/simulakrum_generated.cmake)
 
+#############################################################################################################
+# Main library target
+#############################################################################################################
 add_library(simulakrum
         ${simlakrum_default_SRC}
         ${simlakrum_generated_INCLUDE}
@@ -59,13 +101,15 @@ add_library(simulakrum
         include/simulakrum/vk_function_impl.hpp
         include/simulakrum/vk_function_info.hpp
         include/simulakrum/vk_function_observer.hpp
-        )
-target_include_directories(simulakrum PUBLIC include/ ${vulkanheaders_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}/gen/include)
+)
+target_include_directories(simulakrum PUBLIC include/ ${Vulkan-Headers_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}/gen/include)
 set_target_properties(simulakrum PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(simulakrum PROPERTIES
         CXX_STANDARD 20
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO
-        )
+)
 
-add_subdirectory(test)
+if (${SIMULAKRUM_BUILD_TESTS})
+    add_subdirectory(test)
+endif ()
