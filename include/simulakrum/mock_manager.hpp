@@ -54,9 +54,9 @@ struct mock_manager
     template<auto vk_fn, typename... Args>
     static auto call(Args&&... args) -> decltype(auto)
     {
-        constexpr auto const& fn_info      = info<vk_fn>;
-        auto const&           fn_overrides = overrides<vk_fn>;
-        auto const&           fn_observers = observers<vk_fn>;
+        constexpr auto const fn_info      = info<vk_fn>;
+        auto const&          fn_overrides = overrides<vk_fn>;
+        auto const&          fn_observers = observers<vk_fn>;
 
         for (auto&& observer : fn_observers)
             std::invoke(observer, args...);
