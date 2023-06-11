@@ -230,6 +230,20 @@ def compile_function_list(args, root, blacklist):
     return functions
 
 
+def write_if_not_same(file_path, content):
+    same = False
+    try:
+        with open(file_path, 'r') as orig:
+            if orig.read() == content:
+                same = True
+    except:
+        pass
+
+    if not same:
+        with open(file_path, 'w') as out:
+            out.write(content)
+
+
 def generate_info_header(args, fn):
     name = fn.name
     return_type = fn.returntype
@@ -249,14 +263,11 @@ def generate_info_header(args, fn):
     if uses_array_type:
         additional_includes = '#include "simulakrum/c_array.hpp"\n'
 
-    with open(file_path, 'w') as out:
-        out.write(cpp_license_header)
-        out.write('\n')
-        out.write(cpp_generated_file_warning_header)
-        out.write('\n')
+    content = cpp_license_header + '\n' + cpp_generated_file_warning_header + '\n' + info_header_template.format(
+        name=name, return_type=return_type, params=params_string,
+        additional_includes=additional_includes)
 
-        out.write(info_header_template.format(name=name, return_type=return_type, params=params_string,
-                                              additional_includes=additional_includes))
+    write_if_not_same(file_path, content)
 
 
 def generate_function_impl(args, fn):
@@ -280,15 +291,11 @@ def generate_function_impl(args, fn):
     if uses_array_type:
         additional_includes = '#include "simulakrum/c_array.hpp"\n'
 
-    with open(file_path, 'w') as out:
-        out.write(cpp_license_header)
-        out.write('\n')
-        out.write(cpp_generated_file_warning_header)
-        out.write('\n')
+    content = cpp_license_header + '\n' + cpp_generated_file_warning_header + '\n' + function_impl_template.format(
+        name=name, return_type=return_type, params=params_string, args=args_string,
+        additional_includes=additional_includes)
 
-        out.write(
-            function_impl_template.format(name=name, return_type=return_type, params=params_string, args=args_string,
-                                          additional_includes=additional_includes))
+    write_if_not_same(file_path, content)
 
 
 def generate_stub(args, fn, functions):
@@ -321,29 +328,28 @@ def generate_stub(args, fn, functions):
     if uses_array_type:
         additional_includes = '#include "simulakrum/c_array.hpp"\n'
 
-    with open(file_path, 'w') as out:
-        out.write(cpp_license_header)
+    return_statement = 'return'
+    if return_type == 'VkResult':
+        return_statement += ' VK_SUCCESS'
+    elif return_type != 'void':
+        return_statement += f' {return_type}{{}}'
 
-        return_statement = 'return'
-        if return_type == 'VkResult':
-            return_statement += ' VK_SUCCESS'
-        elif return_type != 'void':
-            return_statement += f' {return_type}{{}}'
+    content = cpp_license_header + stub_template.format(name=name, return_type=return_type, params=params_string,
+                                                        args=args_string,
+                                                        return_statement=return_statement,
+                                                        additional_includes=additional_includes)
 
-        out.write(
-            stub_template.format(name=name, return_type=return_type, params=params_string, args=args_string,
-                                 return_statement=return_statement, additional_includes=additional_includes))
+    write_if_not_same(file_path, content)
 
 
 def generate_vkGetXProcAddr(args, file_path, functions, name, params_string):
-    with open(file_path, 'w') as out:
-        out.write(cpp_license_header)
+    cases = ''
+    for fn in functions:
+        cases += f'        if (std::string_view{{pName}} == "{fn.name}") return (PFN_vkVoidFunction)&{fn.name};\n'
 
-        cases = ''
-        for fn in functions:
-            cases += f'        if (std::string_view{{pName}} == "{fn.name}") return (PFN_vkVoidFunction)&{fn.name};\n'
+    content = cpp_license_header + vkGetXProcAddr_default_template.format(name=name, params=params_string, cases=cases)
 
-        out.write(vkGetXProcAddr_default_template.format(name=name, params=params_string, cases=cases))
+    write_if_not_same(file_path, content)
 
 
 def generate_combined_info_header(args, functions):
@@ -353,14 +359,11 @@ def generate_combined_info_header(args, functions):
     if args.verbose:
         print(f'Generating combined info header in: {file_path}')
 
-    with open(file_path, 'w') as out:
-        out.write(cpp_license_header)
-        out.write('\n')
-        out.write(cpp_generated_file_warning_header)
-        out.write('\n\n')
+    content = cpp_license_header + '\n' + cpp_generated_file_warning_header + '\n\n'
+    for fn in functions:
+        content += f'#include "simulakrum/{fn.name}_info.hpp"\n'
 
-        for fn in functions:
-            out.write(f'#include "simulakrum/{fn.name}_info.hpp"\n')
+    write_if_not_same(file_path, content)
 
 
 def generate_cmake(args, functions):
@@ -370,30 +373,27 @@ def generate_cmake(args, functions):
     if args.verbose:
         print(f'Generating cmake in: {file_path}')
 
-    with open(file_path, 'w') as out:
-        out.write(cmake_license_header)
-        out.write('\n')
-        out.write(cmake_generated_file_warning_header)
-        out.write('\n\n')
+    content = cmake_license_header + '\n' + cmake_generated_file_warning_header + '\n\n'
+    content += 'set(simlakrum_generated_INCLUDE\n'
+    for fn in functions:
+        content += f'    {args.header_dir}/simulakrum/{fn.name}_info.hpp\n'
+    content += ')\n'
 
-        out.write('set(simlakrum_generated_INCLUDE\n')
-        for fn in functions:
-            out.write(f'    {args.header_dir}/simulakrum/{fn.name}_info.hpp\n')
-        out.write(')\n')
+    content += 'set(simlakrum_generated_SRC\n'
+    for fn in functions:
+        content += f'    {args.source_dir}/{fn.name}.cpp\n'
+    for fn in special_get_proc_addr_list:
+        content += f'    {args.source_dir}/{fn}_default.cpp\n'
+    content += ')\n'
 
-        out.write('set(simlakrum_generated_SRC\n')
-        for fn in functions:
-            out.write(f'    {args.source_dir}/{fn.name}.cpp\n')
-        for fn in special_get_proc_addr_list:
-            out.write(f'    {args.source_dir}/{fn}_default.cpp\n')
-        out.write(')\n')
+    content += 'set(simlakrum_default_SRC\n'
+    for fn in functions:
+        if fn.name in special_get_proc_addr_list:
+            continue
+        content += f'    {args.stub_dir}/{fn.name}_default.cpp\n'
+    content += ')\n'
 
-        out.write('set(simlakrum_default_SRC\n')
-        for fn in functions:
-            if fn.name in special_get_proc_addr_list:
-                continue
-            out.write(f'    {args.stub_dir}/{fn.name}_default.cpp\n')
-        out.write(')\n')
+    write_if_not_same(file_path, content)
 
 
 if __name__ == '__main__':
